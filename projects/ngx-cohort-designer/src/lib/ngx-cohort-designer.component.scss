@@ -1,0 +1,228 @@
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.cohort-designer-root {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background: #f8fafc;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Overview Toggle Button on Top Right */
+.overview-toggle-wrapper {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 25;
+
+  .btn-toggle-overview {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    cursor: pointer;
+    transition: all 0.15s ease;
+
+    &:hover {
+      background: #f1f5f9;
+      color: #0f172a;
+      border-color: #cbd5e1;
+    }
+
+    &.active {
+      background: #0284c7;
+      color: #ffffff;
+      border-color: #0284c7;
+    }
+  }
+}
+
+.designer-workspace {
+  display: flex;
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Canvas Viewport */
+.canvas-container {
+  flex: 1;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  background-color: #f8fafc;
+  background-image: 
+    radial-gradient(#cbd5e1 1.2px, transparent 1.2px),
+    radial-gradient(#e2e8f0 1.2px, #f8fafc 1.2px);
+  background-size: 24px 24px;
+  background-position: 0 0, 12px 12px;
+  cursor: default;
+
+  &.connecting-mode {
+    cursor: crosshair;
+  }
+
+  &.panning-mode {
+    cursor: grab;
+    &:active {
+      cursor: grabbing;
+    }
+  }
+
+  &.resizing-mode {
+    cursor: ew-resize;
+  }
+}
+
+.canvas-grid {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 10000px;
+  height: 10000px;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+/* SVG Connections Layer */
+.connections-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  overflow: visible;
+
+  .connections-group {
+    pointer-events: auto;
+  }
+}
+
+.wire-hit-area {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 18px;
+  cursor: pointer;
+  pointer-events: stroke;
+}
+
+.wire-path {
+  fill: none;
+  stroke: #000000;
+  stroke-width: 2px;
+  cursor: pointer;
+  pointer-events: stroke;
+  transition: stroke 0.15s ease, stroke-width 0.15s ease, filter 0.15s ease;
+
+  &:hover {
+    stroke-width: 2.5px;
+    stroke: #000000 !important;
+    filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.35));
+  }
+
+  &.selected {
+    stroke-width: 2.5px;
+    stroke: #000000 !important;
+    filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.5));
+  }
+}
+
+.active-wire-drawing {
+  fill: none;
+  stroke: #000000;
+  stroke-width: 2px;
+  stroke-dasharray: 5, 4;
+  animation: dash-draw 0.8s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes dash-draw {
+  from { stroke-dashoffset: 18; }
+  to { stroke-dashoffset: 0; }
+}
+
+/* Nodes Layer */
+.nodes-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.node-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: auto;
+  will-change: transform;
+  cursor: move;
+}
+
+/* Connecting Banner */
+.connecting-banner {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #0f172a;
+  color: #f8fafc;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 20;
+  pointer-events: none;
+
+  .banner-pulse {
+    width: 7px;
+    height: 7px;
+    background: #38bdf8;
+    border-radius: 50%;
+  }
+}
+
+/* Inspector Container */
+.inspector-container {
+  width: 0;
+  height: 100%;
+  position: relative;
+  z-index: 30;
+  transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.08);
+
+  &.open {
+    /* Compact width for single cohort / details: fits 1 cohort card (340px) + padding */
+    width: 380px;
+
+    /* When multiple cohorts are there, expand section to minimum width fitting 2 cohorts side-by-side */
+    /* Kept to a minimum so the canvas and cohorts remain in clear view */
+    &.multi-blocks-panel {
+      width: min(740px, 52vw);
+      min-width: 380px;
+    }
+  }
+}

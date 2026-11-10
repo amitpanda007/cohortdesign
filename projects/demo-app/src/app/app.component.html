@@ -1,0 +1,175 @@
+<div class="app-shell">
+  <!-- Host Application Bar -->
+  <header class="app-header">
+    <div class="brand-group">
+      <div class="brand-logo">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+          <circle cx="17.5" cy="6.5" r="3.5"></circle>
+          <rect x="14" y="14" width="7" height="7" rx="1"></rect>
+          <path d="M10 6.5h4M6.5 10v4M14 17.5h-4"></path>
+        </svg>
+      </div>
+      <div class="brand-title">Cohort Designer</div>
+    </div>
+
+    <!-- Host Actions & Template Selector -->
+    <div class="header-actions">
+      <div class="template-nav">
+        <button
+          type="button"
+          class="btn-nav"
+          *ngFor="let tpl of templates"
+          [class.active]="currentTemplateId === tpl.id"
+          (click)="loadTemplate(tpl)"
+        >
+          {{ tpl.name }}
+        </button>
+        <button
+          type="button"
+          class="btn-nav blank-nav"
+          [class.active]="currentTemplateId === 'blank'"
+          (click)="loadBlankSlate()"
+        >
+          Blank Slate
+        </button>
+      </div>
+
+      <div class="header-divider"></div>
+
+      <!-- Select Cohort Button (Outside the component) -->
+      <button 
+        type="button" 
+        class="btn-select-cohort" 
+        (click)="openCohortSelectModal()" 
+        title="Select cohorts from available study definitions"
+      >
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+          <circle cx="8.5" cy="7" r="4"></circle>
+          <line x1="20" y1="8" x2="20" y2="14"></line>
+          <line x1="23" y1="11" x2="17" y2="11"></line>
+        </svg>
+        <span>+ Select Cohort</span>
+      </button>
+
+      <div class="io-actions">
+        <button type="button" class="btn-io" (click)="openJsonModal()" title="View Exported JSON">
+          Export JSON
+        </button>
+
+        <button type="button" class="btn-save" (click)="onSaveClicked()" title="Save Cohort Design Flow">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+            <polyline points="7 3 7 8 15 8"></polyline>
+          </svg>
+          Save Design
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Embedded Pluggable ngx-cohort-designer Component -->
+  <main class="designer-host">
+    <ngx-cohort-designer
+      [flowData]="activeProtocol"
+      (flowChange)="onFlowChanged($event)"
+    ></ngx-cohort-designer>
+  </main>
+
+  <!-- Select Cohort Modal (Master Cohort List with Checkboxes) -->
+  <div class="modal-backdrop" *ngIf="showCohortModal" (click)="closeCohortSelectModal()">
+    <div class="modal-card select-cohort-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <h3>Select Clinical Study Cohorts</h3>
+          <p class="modal-subtitle">Choose from defined protocol cohorts to add onto the canvas architecture</p>
+        </div>
+        <button type="button" class="modal-close" (click)="closeCohortSelectModal()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="available-cohorts-list">
+          <label 
+            *ngFor="let item of masterCohortList" 
+            class="available-cohort-item"
+            [class.selected]="selectedCohortNames.has(item.name)"
+            [class.on-canvas]="isCohortOnCanvas(item.name)"
+          >
+            <div class="item-left">
+              <input 
+                type="checkbox" 
+                [checked]="selectedCohortNames.has(item.name)"
+                [disabled]="isCohortOnCanvas(item.name)"
+                (change)="toggleCohortSelection(item.name)"
+              />
+              <span class="cohort-title">{{ item.name }}</span>
+            </div>
+
+            <div class="item-right">
+              <span class="on-canvas-badge" *ngIf="isCohortOnCanvas(item.name)">On Canvas</span>
+            </div>
+          </label>
+        </div>
+
+        <!-- Custom Cohort Input Option -->
+        <div class="custom-cohort-box">
+          <label class="custom-label">+ Or add custom cohort:</label>
+          <div class="custom-single-row">
+            <input 
+              type="text" 
+              class="custom-cohort-input"
+              [(ngModel)]="customCohortName" 
+              placeholder="e.g. Expansion Cohort 3" 
+            />
+            <button 
+              type="button" 
+              class="btn-add-custom" 
+              [disabled]="!customCohortName.trim()"
+              (click)="addCustomCohortDirectly()"
+            >
+              + Add
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="closeCohortSelectModal()">Cancel</button>
+        <button 
+          type="button" 
+          class="btn-primary" 
+          [disabled]="selectedCohortNames.size === 0"
+          (click)="confirmAddSelectedCohorts()"
+        >
+          Add to Canvas ({{ selectedCohortNames.size }} Selected)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JSON Export Modal -->
+  <div class="modal-backdrop" *ngIf="showJsonModal" (click)="closeJsonModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Cohort Design Data Output</h3>
+        <button type="button" class="modal-close" (click)="closeJsonModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">This JSON payload contains all defined cohorts (names, randomized subjects, colors, descriptions), dependency delays, and connection flow paths:</p>
+        <pre class="json-preview"><code>{{ jsonExportString }}</code></pre>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="closeJsonModal()">Close</button>
+        <button type="button" class="btn-primary" (click)="copyJsonToClipboard()">Copy to Clipboard</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="app-toast" [class.show]="toastVisible">
+    <div class="toast-indicator"></div>
+    <span>{{ toastMessage }}</span>
+  </div>
+</div>

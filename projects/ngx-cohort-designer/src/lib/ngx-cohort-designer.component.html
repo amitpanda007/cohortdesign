@@ -1,0 +1,176 @@
+<div class="cohort-designer-root">
+  <!-- Minimal Add Toolbar (Add Cohort & Add Dependency only) -->
+  <lib-toolbar
+    [readonly]="readonly"
+    (addCohort)="addCohort()"
+    (addDependency)="addDependency()"
+  ></lib-toolbar>
+
+  <!-- Right Panel Toggle Button (Overview of all cohorts & dependencies) -->
+  <div class="overview-toggle-wrapper">
+    <button 
+      type="button" 
+      class="btn-toggle-overview" 
+      [class.active]="service.isRightPanelOpen()"
+      (click)="service.toggleRightPanel()"
+      title="View all cohorts and dependencies together"
+    >
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="8" y1="6" x2="21" y2="6"></line>
+        <line x1="8" y1="12" x2="21" y2="12"></line>
+        <line x1="8" y1="18" x2="21" y2="18"></line>
+        <line x1="3" y1="6" x2="3.01" y2="6"></line>
+        <line x1="3" y1="12" x2="3.01" y2="12"></line>
+        <line x1="3" y1="18" x2="3.01" y2="18"></line>
+      </svg>
+      <span>All Blocks ({{ nodes().length }})</span>
+    </button>
+  </div>
+
+  <!-- Canvas Workspace -->
+  <div class="designer-workspace">
+    <!-- Interactive Canvas Viewport -->
+    <div 
+      #canvasContainer 
+      class="canvas-container"
+      [class.connecting-mode]="!!activeConnecting()"
+      [class.panning-mode]="isPanningCanvas"
+      [class.resizing-mode]="isResizing"
+      (mousedown)="onCanvasMouseDown($event)"
+    >
+      <!-- Background Grid -->
+      <div 
+        class="canvas-grid" 
+        [style.transform]="'translate(' + transform().panX + 'px, ' + transform().panY + 'px) scale(' + transform().zoom + ')'"
+      >
+        <!-- SVG Connections Layer -->
+        <svg class="connections-svg">
+          <defs>
+            <marker
+              id="arrow-default"
+              viewBox="0 0 10 10"
+              refX="11"
+              refY="5"
+              markerUnits="userSpaceOnUse"
+              markerWidth="10"
+              markerHeight="10"
+              orient="auto-start-reverse"
+              overflow="visible"
+            >
+              <path d="M 2 2 L 7 5 L 2 8 z" fill="#000000" />
+            </marker>
+
+            <marker
+              id="arrow-selected"
+              viewBox="0 0 10 10"
+              refX="11"
+              refY="5"
+              markerUnits="userSpaceOnUse"
+              markerWidth="10"
+              markerHeight="10"
+              orient="auto-start-reverse"
+              overflow="visible"
+            >
+              <path d="M 2 2 L 7 5 L 2 8 z" fill="#000000" />
+            </marker>
+          </defs>
+
+          <!-- Established Connections -->
+          <g class="connections-group">
+            <ng-container *ngFor="let conn of connections()">
+              <!-- Invisible hit area for easier clicking -->
+              <path
+                class="wire-hit-area"
+                [attr.d]="getConnectionPath(conn)"
+                (click)="onSelectConnection(conn.id, $event)"
+              />
+
+              <!-- Visible connection line -->
+              <path
+                class="wire-path"
+                [class.selected]="selectedConnection()?.id === conn.id"
+                [attr.d]="getConnectionPath(conn)"
+                [style.stroke]="conn.color || '#000000'"
+                [attr.marker-end]="selectedConnection()?.id === conn.id ? 'url(#arrow-selected)' : 'url(#arrow-default)'"
+                (click)="onSelectConnection(conn.id, $event)"
+              />
+            </ng-container>
+
+            <!-- Dynamic Active Cable following mouse pointer -->
+            <path
+              *ngIf="activeConnecting()"
+              class="active-wire-drawing"
+              [attr.d]="getActiveConnectingPath()"
+              marker-end="url(#arrow-default)"
+            />
+          </g>
+        </svg>
+
+        <!-- Nodes HTML Layer -->
+        <div class="nodes-layer">
+          <ng-container *ngFor="let node of nodes()">
+            <!-- Cohort Block (Square / Card) -->
+            <div
+              *ngIf="node.type === 'cohort'"
+              class="node-wrapper"
+              [style.transform]="'translate(' + node.x + 'px, ' + node.y + 'px)'"
+              (mousedown)="onNodeMouseDown(node, $event)"
+            >
+              <lib-cohort-node
+                [node]="$any(node)"
+                [isSelected]="selectedNode()?.id === node.id"
+                [readonly]="readonly"
+                (selectNode)="onSelectNode($event)"
+                (portClick)="onPortClick($event)"
+                (portMouseUp)="onPortMouseUp($event)"
+                (deleteNode)="service.deleteNode($event)"
+                (resizeStart)="onCohortResizeStart($event)"
+              ></lib-cohort-node>
+            </div>
+
+            <!-- Dependency Block (Circle / Icon) -->
+            <div
+              *ngIf="node.type === 'dependency'"
+              class="node-wrapper"
+              [style.transform]="'translate(' + node.x + 'px, ' + node.y + 'px)'"
+              (mousedown)="onNodeMouseDown(node, $event)"
+            >
+              <lib-dependency-node
+                [node]="$any(node)"
+                [isSelected]="selectedNode()?.id === node.id"
+                [readonly]="readonly"
+                [customIcons]="customIcons"
+                (selectNode)="onSelectNode($event)"
+                (portClick)="onPortClick($event)"
+                (portMouseUp)="onPortMouseUp($event)"
+                (deleteNode)="service.deleteNode($event)"
+              ></lib-dependency-node>
+            </div>
+          </ng-container>
+        </div>
+      </div>
+
+      <!-- Connecting Guide Banner -->
+      <div class="connecting-banner" *ngIf="activeConnecting()">
+        <span class="banner-pulse"></span>
+        <span>Drag or click to target port (Left/Right) to connect, or release/press <strong>Esc</strong> to cancel.</span>
+      </div>
+    </div>
+
+    <!-- Right Side Panel: Overview of All Blocks or Edit Selected -->
+    <div 
+      class="inspector-container" 
+      [class.open]="service.isRightPanelOpen()"
+      [class.multi-blocks-panel]="service.hasMultipleBlocks()"
+    >
+      <lib-inspector-panel
+        *ngIf="service.isRightPanelOpen()"
+        [node]="selectedNode()"
+        [connection]="selectedConnection()"
+        [customIcons]="customIcons"
+        [readonly]="readonly"
+        (close)="onCloseInspector()"
+      ></lib-inspector-panel>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,60 @@
+<div 
+  class="dependency-wrapper"
+  [class.selected]="isSelected"
+  [class.connecting-target]="isValidConnectionTarget()"
+  (click)="onNodeClick($event)"
+  (mouseenter)="isHovered = true"
+  (mouseleave)="isHovered = false"
+>
+  <!-- Modern Floating Tooltip on Hover -->
+  <div class="dependency-hover-tooltip" *ngIf="isHovered && !isConnectingActive()">
+    <div class="tooltip-header">
+      <span class="tooltip-name">{{ node.name || 'Dependency' }}</span>
+      <span class="tooltip-pill">{{ node.days }}d delay</span>
+    </div>
+    <div class="tooltip-divider" *ngIf="node.event"></div>
+    <div class="tooltip-body" *ngIf="node.event">
+      <div class="tooltip-stat">
+        <span class="stat-label">Event:</span>
+        <span class="stat-value">{{ node.event }}{{ node.event === 'Number of Subjects' && node.eventSubjectCount ? ' (' + node.eventSubjectCount + ')' : '' }}</span>
+      </div>
+    </div>
+  </div>
+  <!-- Left In-Connector Port -->
+  <div
+    class="port-handle port-left"
+    [class.active-source]="isSourceOfConnection() && activeConnecting()?.fromPort === 'left'"
+    [class.active-target-glow]="isValidConnectionTarget()"
+    (mousedown)="onPortMouseDown('left', $event)"
+    (mouseup)="onPortMouseUp('left', $event)"
+    (mouseenter)="onPortMouseEnter('left')"
+    (mouseleave)="onPortMouseLeave()"
+    title="In connector (Left)"
+  >
+    <div class="port-dot"></div>
+  </div>
+
+  <!-- Circular Icon Node -->
+  <div class="icon-circle">
+    <div class="icon-inner" [innerHTML]="iconSvg()"></div>
+  </div>
+
+  <!-- Right Out-Connector Port -->
+  <div
+    class="port-handle port-right"
+    [class.active-source]="isSourceOfConnection() && activeConnecting()?.fromPort === 'right'"
+    [class.active-target-glow]="isValidConnectionTarget()"
+    (mousedown)="onPortMouseDown('right', $event)"
+    (mouseup)="onPortMouseUp('right', $event)"
+    (mouseenter)="onPortMouseEnter('right')"
+    (mouseleave)="onPortMouseLeave()"
+    title="Out connector (Right)"
+  >
+    <div class="port-dot"></div>
+  </div>
+
+  <!-- Minimal Days / Delay Badge -->
+  <div class="days-badge" [title]="node.name + ' - ' + node.days + ' days minimal delay'">
+    {{ node.days }}d
+  </div>
+</div>

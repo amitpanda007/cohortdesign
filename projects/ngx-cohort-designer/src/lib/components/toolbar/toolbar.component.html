@@ -1,0 +1,11 @@
+<div class="toolbar-container" *ngIf="!readonly">
+  <button 
+    type="button" 
+    class="btn-tool btn-add-dep" 
+    (click)="addDependency.emit()"
+    title="Add a Dependency / Delay component"
+  >
+    <span class="tool-icon circle-icon"></span>
+    <span>+ Add Dependency</span>
+  </button>
+</div>

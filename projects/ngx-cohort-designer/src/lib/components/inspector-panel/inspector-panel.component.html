@@ -1,0 +1,713 @@
+<div class="inspector-drawer">
+  <!-- Clean Drawer Header: Cohorts and Dependencies Top Sections + Close Button -->
+  <div class="drawer-header">
+    <div class="header-left">
+      <!-- In Overview mode: Cohorts & Dependencies sections directly at the top -->
+      <div class="all-blocks-switcher" *ngIf="activeTab() === 'overview'">
+        <button 
+          type="button" 
+          class="switcher-btn cohort-btn"
+          [class.active]="allBlocksSection() === 'cohorts'"
+          (click)="setAllBlocksSection('cohorts')"
+        >
+          <span class="switcher-dot cohort"></span>
+          <span>Cohorts ({{ cohorts().length }})</span>
+          <span class="switcher-badge" *ngIf="cohorts().length > 0">Target: {{ totalRandomizedSubjects() }}</span>
+        </button>
+
+        <button 
+          type="button" 
+          class="switcher-btn dep-btn"
+          [class.active]="allBlocksSection() === 'dependencies'"
+          (click)="setAllBlocksSection('dependencies')"
+        >
+          <span class="switcher-dot dep"></span>
+          <span>Dependencies ({{ dependencies().length }})</span>
+        </button>
+      </div>
+
+      <!-- In Single Section Details mode: Clean button to return to Overview -->
+      <button 
+        type="button" 
+        class="btn-show-all-blocks" 
+        *ngIf="activeTab() === 'details'"
+        (click)="setTab('overview')"
+        title="Back to cohorts and dependencies overview"
+      >
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+        <span>Overview</span>
+      </button>
+
+      <span class="panel-details-subtitle" *ngIf="activeTab() === 'details'">
+        &bull; {{ isCohort ? (cohortNode.name || 'Cohort') : isDependency ? (dependencyNode.name || 'Delay') : 'Connection' }}
+      </span>
+    </div>
+
+    <div class="header-right-actions">
+      <button type="button" class="close-btn" (click)="close.emit()" title="Close panel">
+        &times;
+      </button>
+    </div>
+  </div>
+
+  <!-- Drawer Body -->
+  <div class="drawer-body">
+
+    <!-- ==================== TAB 1: ALL BLOCKS SIMULTANEOUS BATCH EDITING ==================== -->
+    <div *ngIf="activeTab() === 'overview'" class="overview-container">
+      
+      <!-- SECTION 1: COHORTS (HORIZONTAL COLUMNS SIDE BY SIDE) -->
+      <div class="overview-section" *ngIf="allBlocksSection() === 'cohorts'">
+        <div class="section-title-row" *ngIf="cohorts().length > 0">
+          <div class="section-title-group">
+            <span class="section-title">Cohorts</span>
+            <span class="section-sub">
+              {{ cohorts().length }} Cohort{{ cohorts().length === 1 ? '' : 's' }} &bull; Total Target: {{ totalRandomizedSubjects() }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Horizontal side-by-side column cards list -->
+        <div 
+          #cohortsScroll 
+          class="overview-columns-scroll cohorts-scroll" 
+          *ngIf="cohorts().length > 0"
+          (wheel)="onHorizontalWheel($event, cohortsScroll)"
+        >
+          <div 
+            class="batch-column-card cohort-col-card" 
+            *ngFor="let c of cohorts(); let i = index"
+          >
+            <!-- Card Header (Clean & Monochromatic) -->
+            <div class="col-card-header">
+              <div class="header-left">
+                <span class="index-badge">#{{ i + 1 }}</span>
+                <span class="card-headline" [title]="c.name">
+                  {{ c.name }}
+                </span>
+                <span class="subjects-pill" *ngIf="c.randomizationTarget || (c.subjects && c.subjects > 0)">
+                  Target: {{ c.randomizationTarget || c.subjects }}
+                </span>
+              </div>
+
+              <div class="header-right" *ngIf="!readonly">
+                <button 
+                  type="button" 
+                  class="btn-card-delete" 
+                  (click)="deleteCohort(c.id)"
+                  title="Delete this cohort"
+                >
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Card Body: Modern Parameters Fields (Color and Description Removed) -->
+            <div class="col-card-body">
+              <!-- Parameter 1: Cohort Name -->
+              <div class="param-field-group">
+                <label class="param-label">Cohort Name</label>
+                <div class="param-input-wrapper">
+                  <input 
+                    type="text" 
+                    class="modern-input"
+                    [(ngModel)]="c.name" 
+                    (ngModelChange)="onCohortChange(c)"
+                    placeholder="e.g. Cohort A" 
+                    [disabled]="readonly"
+                  />
+                </div>
+              </div>
+
+              <!-- Parameter 2: Cohort Level (Modern Segmented Control) -->
+              <div class="param-field-group">
+                <label class="param-label">Cohort Level</label>
+                <div class="modern-segmented-control">
+                  <button
+                    type="button"
+                    class="segment-btn"
+                    [class.active]="(c.cohortLevel || 'Worldwide') === 'Worldwide'"
+                    (click)="c.cohortLevel = 'Worldwide'; onCohortChange(c)"
+                    [disabled]="readonly"
+                  >
+                    <svg class="segment-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="2" y1="12" x2="22" y2="12"></line>
+                      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                    </svg>
+                    <span>Worldwide</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="segment-btn"
+                    [class.active]="c.cohortLevel === 'Country'"
+                    (click)="c.cohortLevel = 'Country'; onCohortChange(c)"
+                    [disabled]="readonly"
+                  >
+                    <svg class="segment-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
+                      <line x1="4" y1="22" x2="4" y2="15"></line>
+                    </svg>
+                    <span>Country</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Parameter 3: Randomization Target (Separate Full-Width Line) -->
+              <div class="param-field-group">
+                <label class="param-label">
+                  Randomization Target <span class="required-star">*</span>
+                </label>
+                <div class="param-input-wrapper">
+                  <input 
+                    type="number" 
+                    class="modern-input"
+                    [(ngModel)]="c.randomizationTarget" 
+                    (ngModelChange)="onCohortTargetChange(c)"
+                    min="1" 
+                    max="10000"
+                    placeholder="Enter target" 
+                    [disabled]="readonly"
+                  />
+                </div>
+              </div>
+
+              <!-- Parameter 4: Screening Period (Separate Full-Width Line) -->
+              <div class="param-field-group">
+                <label class="param-label">
+                  Screening Period <span class="required-star">*</span>
+                </label>
+                <div class="modern-addon-input">
+                  <input 
+                    type="number" 
+                    [(ngModel)]="c.screeningPeriod" 
+                    (ngModelChange)="onCohortScreeningChange(c)"
+                    min="0" 
+                    max="365"
+                    placeholder="Enter days" 
+                    [disabled]="readonly"
+                  />
+                  <span class="addon-suffix">days</span>
+                </div>
+              </div>
+
+              <!-- Parameter 5: Target Last Subject Randomized -->
+              <div class="param-field-group">
+                <label class="param-label">Target Last Subject Randomized</label>
+                <div class="modern-date-input">
+                  <input 
+                    type="date" 
+                    [(ngModel)]="c.targetLastSubjectRandomized" 
+                    (ngModelChange)="onCohortChange(c)"
+                    [disabled]="readonly"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="empty-hint" *ngIf="cohorts().length === 0">
+          No cohorts on canvas yet. Click <strong>+ Add Cohort</strong> to create your first cohort.
+        </div>
+      </div>
+
+      <!-- SECTION 2: DEPENDENCIES (HORIZONTAL COLUMNS SIDE BY SIDE) -->
+      <div class="overview-section" *ngIf="allBlocksSection() === 'dependencies'">
+        <div class="section-title-row" *ngIf="dependencies().length > 0">
+          <div class="section-title-group">
+            <span class="section-title">Dependencies & Delays</span>
+            <span class="section-sub">
+              {{ dependencies().length }} Delay Block{{ dependencies().length === 1 ? '' : 's' }}
+            </span>
+          </div>
+        </div>
+
+        <div 
+          #depsScroll 
+          class="overview-columns-scroll deps-scroll" 
+          *ngIf="dependencies().length > 0"
+          (wheel)="onHorizontalWheel($event, depsScroll)"
+        >
+          <div 
+            class="batch-column-card dep-col-card" 
+            *ngFor="let d of dependencies(); let j = index"
+          >
+            <!-- Card Header (Clean & Monochromatic, Same as Cohort Card) -->
+            <div class="col-card-header">
+              <div class="header-left">
+                <span class="index-badge dep">#{{ j + 1 }}</span>
+                <span class="card-headline dep" [title]="d.name">{{ d.name }}</span>
+                <span class="delay-pill">{{ d.days }}d delay</span>
+              </div>
+
+              <div class="header-right" *ngIf="!readonly">
+                <button 
+                  type="button" 
+                  class="btn-card-delete" 
+                  (click)="deleteDependency(d.id)"
+                  title="Delete this dependency"
+                >
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Card Body: Modern Parameters Fields (Same Clean Minimal Design as Cohort Card) -->
+            <div class="col-card-body">
+              <!-- Preceding Cohort(s): Display Names Only, No Checkboxes (ON TOP) -->
+              <div class="param-field-group">
+                <label class="param-label">Preceding Cohort(s)</label>
+                <div class="cohort-names-list" *ngIf="getPrecedingCohorts(d.id).length > 0">
+                  <span *ngFor="let pc of getPrecedingCohorts(d.id)" class="cohort-name-chip">
+                    {{ pc.name }}
+                  </span>
+                </div>
+                <span class="no-cohorts-note" *ngIf="getPrecedingCohorts(d.id).length === 0">None</span>
+              </div>
+
+              <!-- Dependency Label -->
+              <div class="param-field-group">
+                <label class="param-label">Dependency Label</label>
+                <div class="param-input-wrapper">
+                  <input 
+                    type="text" 
+                    class="modern-input"
+                    [(ngModel)]="d.name" 
+                    (ngModelChange)="onDependencyChange(d)"
+                    placeholder="e.g. Safety Delay, Washout" 
+                    [disabled]="readonly"
+                  />
+                </div>
+              </div>
+
+              <!-- Minimal Delay -->
+              <div class="param-field-group">
+                <label class="param-label">Minimal Delay</label>
+                <div class="modern-addon-input">
+                  <input 
+                    type="number" 
+                    [(ngModel)]="d.days" 
+                    (ngModelChange)="onDependencyChange(d)"
+                    min="0" 
+                    max="365"
+                    placeholder="0"
+                    [disabled]="readonly"
+                  />
+                  <span class="addon-suffix">days</span>
+                </div>
+              </div>
+
+              <!-- Event Gate (Modern Segmented Control) -->
+              <div class="param-field-group">
+                <label class="param-label">Event Gate</label>
+                <div class="modern-segmented-control">
+                  <button
+                    type="button"
+                    class="segment-btn"
+                    [class.active]="d.event !== 'Enrollment Complete'"
+                    (click)="d.event = 'Number of Subjects'; onDependencyChange(d)"
+                    [disabled]="readonly"
+                  >
+                    <span>Number of Subjects</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="segment-btn"
+                    [class.active]="d.event === 'Enrollment Complete'"
+                    (click)="d.event = 'Enrollment Complete'; onDependencyChange(d)"
+                    [disabled]="readonly"
+                  >
+                    <span>Enrollment Complete</span>
+                  </button>
+                </div>
+
+                <!-- Number of Subjects Input -->
+                <div class="event-subjects-row" *ngIf="d.event !== 'Enrollment Complete'">
+                  <label class="sub-label">Required Subjects Count</label>
+                  <input 
+                    type="number" 
+                    class="modern-input"
+                    [(ngModel)]="d.eventSubjectCount" 
+                    (ngModelChange)="onDependencyChange(d)"
+                    placeholder="e.g. 6" 
+                    min="1"
+                    [disabled]="readonly"
+                  />
+                </div>
+              </div>
+
+              <!-- Dependent Cohort(s): Display Names Only, No Checkboxes (AT BOTTOM) -->
+              <div class="param-field-group">
+                <label class="param-label">Dependent Cohort(s)</label>
+                <div class="cohort-names-list" *ngIf="getDependentCohorts(d.id).length > 0">
+                  <span *ngFor="let dc of getDependentCohorts(d.id)" class="cohort-name-chip">
+                    {{ dc.name }}
+                  </span>
+                </div>
+                <span class="no-cohorts-note" *ngIf="getDependentCohorts(d.id).length === 0">None</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="empty-hint" *ngIf="dependencies().length === 0">
+          No dependencies yet. Click <strong>+ Add Delay</strong> above.
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== TAB 2: EDIT SELECTED NODE / CONNECTION ==================== -->
+    <div *ngIf="activeTab() === 'details'" class="details-container">
+      <!-- COHORT EDIT FORM (Color and Description Removed) -->
+      <div *ngIf="isCohort" class="form-container">
+        <!-- Cohort Name -->
+        <div class="param-field-group">
+          <label class="param-label">Cohort Name</label>
+          <input 
+            type="text" 
+            class="modern-input"
+            [(ngModel)]="cohortNode.name" 
+            (ngModelChange)="onFieldChange()"
+            placeholder="e.g. Cohort A" 
+            [disabled]="readonly"
+          />
+        </div>
+
+        <!-- Cohort Level (Modern Segmented Control) -->
+        <div class="param-field-group">
+          <label class="param-label">Cohort Level</label>
+          <div class="modern-segmented-control">
+            <button
+              type="button"
+              class="segment-btn"
+              [class.active]="(cohortNode.cohortLevel || 'Worldwide') === 'Worldwide'"
+              (click)="cohortNode.cohortLevel = 'Worldwide'; onFieldChange()"
+              [disabled]="readonly"
+            >
+              <svg class="segment-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="2" y1="12" x2="22" y2="12"></line>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+              </svg>
+              <span>Worldwide</span>
+            </button>
+            <button
+              type="button"
+              class="segment-btn"
+              [class.active]="cohortNode.cohortLevel === 'Country'"
+              (click)="cohortNode.cohortLevel = 'Country'; onFieldChange()"
+              [disabled]="readonly"
+            >
+              <svg class="segment-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
+                <line x1="4" y1="22" x2="4" y2="15"></line>
+              </svg>
+              <span>Country</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Parameter 3: Randomization Target (Separate Full-Width Line) -->
+        <div class="param-field-group">
+          <label class="param-label">
+            Randomization Target <span class="required-star">*</span>
+          </label>
+          <div class="param-input-wrapper">
+            <input 
+              type="number" 
+              class="modern-input"
+              [(ngModel)]="cohortNode.randomizationTarget" 
+              (ngModelChange)="onCohortDetailsTargetChange()"
+              min="1" 
+              max="10000"
+              placeholder="Enter target" 
+              [disabled]="readonly"
+            />
+          </div>
+        </div>
+
+        <!-- Parameter 4: Screening Period (Separate Full-Width Line) -->
+        <div class="param-field-group">
+          <label class="param-label">
+            Screening Period <span class="required-star">*</span>
+          </label>
+          <div class="modern-addon-input">
+            <input 
+              type="number" 
+              [(ngModel)]="cohortNode.screeningPeriod" 
+              (ngModelChange)="onCohortDetailsScreeningChange()"
+              min="0" 
+              max="365"
+              placeholder="Enter days" 
+              [disabled]="readonly"
+            />
+            <span class="addon-suffix">days</span>
+          </div>
+        </div>
+
+        <!-- Target Last Subject Randomized -->
+        <div class="param-field-group">
+          <label class="param-label">Target Last Subject Randomized</label>
+          <div class="modern-date-input">
+            <input 
+              type="date" 
+              [(ngModel)]="cohortNode.targetLastSubjectRandomized" 
+              (ngModelChange)="onFieldChange()"
+              [disabled]="readonly"
+            />
+          </div>
+        </div>
+
+        <div class="drawer-actions" *ngIf="!readonly">
+          <button type="button" class="btn-delete" (click)="deleteCurrentNode()">
+            Delete Cohort
+          </button>
+        </div>
+      </div>
+
+      <!-- DEPENDENCY EDIT FORM (Clean & Minimal, Color and Description Removed) -->
+      <div *ngIf="isDependency" class="form-container">
+        <!-- Preceding Cohort(s): Display Names Only, No Checkboxes (ON TOP) -->
+        <div class="param-field-group">
+          <label class="param-label">Preceding Cohort(s)</label>
+          <div class="cohort-names-list" *ngIf="getPrecedingCohorts(dependencyNode.id).length > 0">
+            <span *ngFor="let c of getPrecedingCohorts(dependencyNode.id)" class="cohort-name-chip">
+              {{ c.name }}
+            </span>
+          </div>
+          <span class="no-cohorts-note" *ngIf="getPrecedingCohorts(dependencyNode.id).length === 0">None</span>
+        </div>
+
+        <!-- Dependency Label -->
+        <div class="param-field-group">
+          <label class="param-label">Dependency Label</label>
+          <div class="param-input-wrapper">
+            <input 
+              type="text" 
+              class="modern-input"
+              [(ngModel)]="dependencyNode.name" 
+              (ngModelChange)="onFieldChange()"
+              placeholder="e.g. Safety Delay, Washout" 
+              [disabled]="readonly"
+            />
+          </div>
+        </div>
+
+        <!-- Minimal Delay -->
+        <div class="param-field-group">
+          <label class="param-label">Minimal Delay</label>
+          <div class="modern-addon-input">
+            <input 
+              type="number" 
+              [(ngModel)]="dependencyNode.days" 
+              (ngModelChange)="onFieldChange()"
+              min="0" 
+              max="365"
+              placeholder="0" 
+              [disabled]="readonly"
+            />
+            <span class="addon-suffix">days</span>
+          </div>
+        </div>
+
+        <!-- Event Gate (Modern Segmented Control) -->
+        <div class="param-field-group">
+          <label class="param-label">Event Gate</label>
+          <div class="modern-segmented-control">
+            <button
+              type="button"
+              class="segment-btn"
+              [class.active]="dependencyNode.event !== 'Enrollment Complete'"
+              (click)="dependencyNode.event = 'Number of Subjects'; onFieldChange()"
+              [disabled]="readonly"
+            >
+              <span>Number of Subjects</span>
+            </button>
+            <button
+              type="button"
+              class="segment-btn"
+              [class.active]="dependencyNode.event === 'Enrollment Complete'"
+              (click)="dependencyNode.event = 'Enrollment Complete'; onFieldChange()"
+              [disabled]="readonly"
+            >
+              <span>Enrollment Complete</span>
+            </button>
+          </div>
+
+          <!-- Required Subjects Count Input -->
+          <div class="event-subjects-row" *ngIf="dependencyNode.event !== 'Enrollment Complete'">
+            <label class="sub-label">Required Subjects Count</label>
+            <input 
+              type="number" 
+              class="modern-input"
+              [(ngModel)]="dependencyNode.eventSubjectCount" 
+              (ngModelChange)="onFieldChange()"
+              placeholder="e.g. 6" 
+              min="1"
+              [disabled]="readonly"
+            />
+          </div>
+        </div>
+
+        <!-- Dependent Cohort(s): Display Names Only, No Checkboxes (AT BOTTOM) -->
+        <div class="param-field-group">
+          <label class="param-label">Dependent Cohort(s)</label>
+          <div class="cohort-names-list" *ngIf="getDependentCohorts(dependencyNode.id).length > 0">
+            <span *ngFor="let c of getDependentCohorts(dependencyNode.id)" class="cohort-name-chip">
+              {{ c.name }}
+            </span>
+          </div>
+          <span class="no-cohorts-note" *ngIf="getDependentCohorts(dependencyNode.id).length === 0">None</span>
+        </div>
+
+        <div class="drawer-actions" *ngIf="!readonly">
+          <button type="button" class="btn-delete" (click)="deleteCurrentNode()">
+            Delete Dependency
+          </button>
+        </div>
+      </div>
+
+      <!-- CONNECTION EDIT FORM -->
+      <div *ngIf="connection" class="form-container">
+        <div class="param-field-group">
+          <label class="param-label">Connected Between</label>
+          <div class="connection-nodes-summary">
+            <span class="cohort-name-chip">{{ getNodeName(connection.fromNodeId) }}</span>
+            <span class="conn-arrow">&rarr;</span>
+            <span class="cohort-name-chip">{{ getNodeName(connection.toNodeId) }}</span>
+          </div>
+        </div>
+
+        <div class="drawer-actions" *ngIf="!readonly">
+          <button type="button" class="btn-delete" (click)="deleteCurrentConnection()">
+            Delete Connection
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== ADD NEW COHORT MODAL DIALOG ==================== -->
+  <!-- User has to provide Randomization Target & Screening Period -->
+  <div class="modal-backdrop" *ngIf="showAddCohortModal" (click)="closeAddCohortModal()">
+    <div class="modal-card add-cohort-dialog" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <h3>Add New Cohort</h3>
+          <p class="modal-subtitle">Randomization Target and Screening Period are required.</p>
+        </div>
+        <button type="button" class="modal-close" (click)="closeAddCohortModal()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Cohort Name -->
+        <div class="param-field-group">
+          <label class="param-label">Cohort Name <span class="required-star">*</span></label>
+          <input 
+            type="text" 
+            class="modern-input"
+            [(ngModel)]="newCohortName" 
+            placeholder="e.g. Cohort C" 
+            (keydown.enter)="confirmAddNewCohort()"
+          />
+        </div>
+
+        <!-- Cohort Level -->
+        <div class="param-field-group">
+          <label class="param-label">Cohort Level</label>
+          <div class="modern-segmented-control">
+            <button
+              type="button"
+              class="segment-btn"
+              [class.active]="newCohortLevel === 'Worldwide'"
+              (click)="newCohortLevel = 'Worldwide'"
+            >
+              <svg class="segment-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="2" y1="12" x2="22" y2="12"></line>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+              </svg>
+              <span>Worldwide</span>
+            </button>
+            <button
+              type="button"
+              class="segment-btn"
+              [class.active]="newCohortLevel === 'Country'"
+              (click)="newCohortLevel = 'Country'"
+            >
+              <svg class="segment-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
+                <line x1="4" y1="22" x2="4" y2="15"></line>
+              </svg>
+              <span>Country</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Randomization Target & Screening Period (Separate Full-Width Lines, Required, NO N=) -->
+        <div class="param-field-group">
+          <label class="param-label">Randomization Target <span class="required-star">*</span></label>
+          <div class="param-input-wrapper">
+            <input 
+              type="number" 
+              class="modern-input"
+              [(ngModel)]="newCohortTarget" 
+              min="1" 
+              max="10000"
+              placeholder="Enter target" 
+              (keydown.enter)="confirmAddNewCohort()"
+            />
+          </div>
+        </div>
+
+        <div class="param-field-group">
+          <label class="param-label">Screening Period <span class="required-star">*</span></label>
+          <div class="modern-addon-input">
+            <input 
+              type="number" 
+              [(ngModel)]="newCohortScreening" 
+              min="0" 
+              max="365"
+              placeholder="Enter days" 
+              (keydown.enter)="confirmAddNewCohort()"
+            />
+            <span class="addon-suffix">days</span>
+          </div>
+        </div>
+
+        <!-- Target Last Subject Randomized (Optional) -->
+        <div class="param-field-group">
+          <label class="param-label">Target Last Subject Randomized</label>
+          <div class="modern-date-input">
+            <input 
+              type="date" 
+              [(ngModel)]="newCohortTargetDate" 
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-dialog-secondary" (click)="closeAddCohortModal()">Cancel</button>
+        <button 
+          type="button" 
+          class="btn-dialog-primary" 
+          [disabled]="!isAddCohortValid()"
+          (click)="confirmAddNewCohort()"
+        >
+          Add Cohort
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

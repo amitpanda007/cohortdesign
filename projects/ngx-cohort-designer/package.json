@@ -1,0 +1,17 @@
+{
+  "name": "ngx-cohort-designer",
+  "version": "0.1.0",
+  "description": "Interactive clinical trial cohort flow designer Angular library with square cohorts, circular dependency gates, and parameter inspectors.",
+  "keywords": ["angular", "cohort-designer", "clinical-trials", "flowchart", "canvas", "protocol-design"],
+  "author": "",
+  "license": "MIT",
+  "peerDependencies": {
+    "@angular/common": "^19.2.0",
+    "@angular/core": "^19.2.0",
+    "@angular/forms": "^19.2.0"
+  },
+  "dependencies": {
+    "tslib": "^2.3.0"
+  },
+  "sideEffects": false
+}

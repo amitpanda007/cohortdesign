@@ -1,0 +1,123 @@
+<div 
+  class="cohort-card"
+  [class.selected]="isSelected"
+  [class.expanded]="node.isExpanded"
+  [class.connecting-target]="isValidConnectionTarget()"
+  [style.width.px]="cardWidth"
+  [style.height.px]="cardHeight"
+  (click)="onCardClick($event)"
+  (mouseenter)="onMouseEnter()"
+  (mouseleave)="onMouseLeave()"
+>
+  <!-- Modern Floating Tooltip on Hover -->
+  <div class="cohort-hover-tooltip" *ngIf="isHovered && !isConnectingActive()">
+    <div class="tooltip-header">
+      <div class="tooltip-title-group">
+        <span class="tooltip-name">{{ node.name }}</span>
+        <span class="tooltip-level-pill" *ngIf="node.cohortLevel">{{ node.cohortLevel }}</span>
+      </div>
+    </div>
+
+    <div class="tooltip-divider"></div>
+
+    <div class="tooltip-body">
+      <div class="tooltip-stat">
+        <span class="stat-label">Target:</span>
+        <span class="stat-value" [class.highlight]="node.randomizationTarget || node.subjects">
+          {{ (node.randomizationTarget || node.subjects) ? (node.randomizationTarget || node.subjects) : 'Not specified' }}
+        </span>
+      </div>
+
+      <div class="tooltip-stat" *ngIf="node.screeningPeriod !== undefined && node.screeningPeriod !== null">
+        <span class="stat-label">Screening:</span>
+        <span class="stat-value">{{ node.screeningPeriod }} days</span>
+      </div>
+
+      <div class="tooltip-stat" *ngIf="node.targetLastSubjectRandomized">
+        <span class="stat-label">Last Subject:</span>
+        <span class="stat-value">{{ node.targetLastSubjectRandomized }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Left In-Connector Port -->
+  <div
+    class="port-handle port-left"
+    [class.active-source]="isSourceOfConnection() && activeConnecting()?.fromPort === 'left'"
+    [class.active-target-glow]="isValidConnectionTarget()"
+    (mousedown)="onPortMouseDown('left', $event)"
+    (mouseup)="onPortMouseUp('left', $event)"
+    (mouseenter)="onPortMouseEnter('left')"
+    (mouseleave)="onPortMouseLeave()"
+    title="In connector (Left)"
+  >
+    <div class="port-dot"></div>
+  </div>
+
+  <!-- Main Card Content: Cohort Name & Randomized Subjects -->
+  <div class="card-content">
+    <span 
+      class="cohort-name" 
+      [title]="node.name"
+    >
+      {{ node.name }}
+    </span>
+
+    <div class="card-right-group" *ngIf="hasRandomizationTarget">
+      <span class="subjects-badge" title="Randomization Target">
+        {{ randomizationTargetValue }}
+      </span>
+    </div>
+  </div>
+
+  <!-- Right Out-Connector Port -->
+  <div
+    class="port-handle port-right"
+    [class.active-source]="isSourceOfConnection() && activeConnecting()?.fromPort === 'right'"
+    [class.active-target-glow]="isValidConnectionTarget()"
+    (mousedown)="onPortMouseDown('right', $event)"
+    (mouseup)="onPortMouseUp('right', $event)"
+    (mouseenter)="onPortMouseEnter('right')"
+    (mouseleave)="onPortMouseLeave()"
+    title="Out connector (Right)"
+  >
+    <div class="port-dot"></div>
+  </div>
+
+  <!-- Interactive Resize Handles on Sides -->
+  <ng-container *ngIf="!readonly">
+    <!-- Right side resize handle -->
+    <div 
+      class="resize-handle resize-right"
+      (mousedown)="onResizeMouseDown('right', $event)"
+      title="Drag side to resize width"
+    ></div>
+
+    <!-- Left side resize handle -->
+    <div 
+      class="resize-handle resize-left"
+      (mousedown)="onResizeMouseDown('left', $event)"
+      title="Drag side to resize width"
+    ></div>
+
+    <!-- Bottom side resize handle -->
+    <div 
+      class="resize-handle resize-bottom"
+      (mousedown)="onResizeMouseDown('bottom', $event)"
+      title="Drag side to resize height"
+    ></div>
+
+    <!-- Bottom-right corner resize grip -->
+    <div 
+      class="resize-handle resize-corner"
+      (mousedown)="onResizeMouseDown('corner', $event)"
+      title="Drag corner to resize card"
+    >
+      <svg viewBox="0 0 10 10" width="8" height="8">
+        <line x1="8" y1="2" x2="2" y2="8" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="8" y1="5" x2="5" y2="8" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="8" y1="8" x2="8" y2="8" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </div>
+  </ng-container>
+</div>

@@ -142,6 +142,13 @@ export class CohortDesignerComponent implements OnInit, OnChanges {
     return d;
   }
 
+  openOverview(section?: 'cohorts' | 'dependencies') {
+    this.service.openOverviewPanel();
+    if (section) {
+      this.service.setAllBlocksSection(section);
+    }
+  }
+
   // --- Coordinate Mapping ---
 
   getCanvasCoordinates(clientX: number, clientY: number): { x: number; y: number } {

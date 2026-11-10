@@ -1,4 +1,4 @@
-import { Component, ViewChild, signal } from '@angular/core';
+import { Component, ViewChild, signal, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -19,8 +19,18 @@ export interface MasterCohortItem {
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss']
 })
-export class AppComponent {
+export class AppComponent implements AfterViewInit {
   @ViewChild(CohortDesignerComponent) designer!: CohortDesignerComponent;
+
+  ngAfterViewInit() {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('panel') === 'open') {
+        const sec = params.get('section') as 'cohorts' | 'dependencies' | null;
+        setTimeout(() => this.designer?.openOverview(sec || undefined), 250);
+      }
+    }
+  }
 
   readonly templates = PROTOCOL_TEMPLATES;
   activeProtocol: CohortDesignFlow = PROTOCOL_TEMPLATES[0].flow;
